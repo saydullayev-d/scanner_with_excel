@@ -1,0 +1,42 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+android {
+    namespace = "com.ssline.scanner_with_excel"
+    compileSdk = 34 // Explicitly set to 33 instead of flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8" // String version for consistency
+    }
+
+    defaultConfig {
+        applicationId = "com.ssline.scanner_with_excel"
+        minSdk = 21 // Explicitly set to a safe minimum (Flutter default is usually 21)
+        targetSdk = 33 // Explicitly set to 33 instead of flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.debug
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.20" // Ensure Kotlin stdlib matches JVM target
+}
