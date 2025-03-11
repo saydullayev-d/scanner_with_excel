@@ -34,8 +34,6 @@ class ExcelHelper {
         var excel = Excel.createExcel();
         var firstSheet = excel.tables.keys.first;
         var sheet = excel[firstSheet];
-        sheet.appendRow(['Номенклатура от $currentDate']);
-        sheet.appendRow(['Отсканированные коды:']);
         await file.writeAsBytes(excel.save()!, flush: true);
       } catch (e) {
         print('Ошибка при создании файла Excel: $e');
@@ -55,10 +53,8 @@ class ExcelHelper {
         var excel = Excel.createExcel();
         var firstSheet = excel.tables.keys.first;
         var sheet = excel[firstSheet];
-        sheet.appendRow(['Счёт фактура от $currentDate']);
-        sheet.appendRow(['Номер Номенклатуры: $itemNumber']);
+        sheet.appendRow([itemNumber]);
         sheet.appendRow([]); // Empty row for separation
-        sheet.appendRow(['Отсканированные коды:']);
         await file.writeAsBytes(excel.save()!, flush: true);
       } catch (e) {
         print('Ошибка при создании файла Excel: $e');
@@ -66,11 +62,9 @@ class ExcelHelper {
     }
   }
 
-  /// Проверяет, есть ли данные в Excel
   Future<bool> isDataUnique(String data) async {
-    await initializeFilePath();
+    await createExcelFile();
     final file = File(filePath!);
-    if (!await file.exists()) return true;
     var bytes = file.readAsBytesSync();
     var excel = Excel.decodeBytes(bytes);
 
@@ -78,8 +72,8 @@ class ExcelHelper {
     Sheet? sheet = excel[firstSheetName];
     if (sheet == null) return true;
 
-    int skipRows = sheet.rows.any((row) => row.any((cell) => cell?.value.toString().contains('Номер Номенклатуры') == true)) ? 4 : 2;
-    for (var row in sheet.rows.skip(skipRows)) {
+    for (var row in sheet.rows) {
+      // Проверяем, что в строке есть хотя бы одна ячейка, и она равна искомому значению
       if (row.isNotEmpty && row.first?.value?.toString() == data) {
         print('Найдено дублирующееся значение: $data');
         return false;
@@ -88,9 +82,11 @@ class ExcelHelper {
     return true;
   }
 
+
+
   /// Добавляет новые данные в первый лист Excel
   Future<void> addData(String data) async {
-    await initializeFilePath();
+    await createExcelFile();
     final file = File(filePath!);
     var bytes = file.readAsBytesSync();
     var excel = Excel.decodeBytes(bytes);
@@ -98,9 +94,11 @@ class ExcelHelper {
     var firstSheetName = excel.tables.keys.first;
     Sheet? sheet = excel[firstSheetName];
     if (sheet != null) {
+      // Проверяем уникальность перед добавлением
       if (await isDataUnique(data)) {
         sheet.appendRow([data]);
-        await file.writeAsBytes(excel.save()!, flush: true);
+        // Сохраняем изменения в файл
+        file.writeAsBytesSync(excel.save()!, flush: true);
         print('Данные добавлены: $data');
       } else {
         print('Данные уже существуют: $data');

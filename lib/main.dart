@@ -45,7 +45,11 @@ class _FileListScreenState extends State<FileListScreen> {
   void _loadFiles() {
     final directory = Directory(dirPath);
     setState(() {
-      files = directory.listSync().whereType<File>().toList();
+      files = directory
+          .listSync()
+          .whereType<File>()
+          .where((file) => file.path.endsWith('.xlsx'))
+          .toList();
     });
   }
 
@@ -53,7 +57,7 @@ class _FileListScreenState extends State<FileListScreen> {
     final itemNumber = await _showItemNumberDialog(context);
     if (itemNumber != null && itemNumber.isNotEmpty) {
       final currentDate = DateFormat('yyyyMMdd').format(DateTime.now());
-      final newFile = File('$dirPath/${itemNumber}_$currentDate.xlsx');
+      final newFile = File('$dirPath/накладная_${itemNumber}.xlsx');
       await excelHelper.createExcelFileWithItemNumber(newFile.path, itemNumber);
       _loadFiles();
     }
@@ -79,6 +83,29 @@ class _FileListScreenState extends State<FileListScreen> {
     );
   }
 
+  Future<void> _deleteFile(File file) async {
+    bool? confirm = await _showDeleteConfirmationDialog(context, file.path.split('/').last);
+    if (confirm == true) {
+      try {
+        await file.delete();
+        _loadFiles();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Файл успешно удален'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка при удалении файла: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
   void _openScanner(File file) {
     Navigator.push(
       context,
@@ -95,13 +122,13 @@ class _FileListScreenState extends State<FileListScreen> {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         title: const Text(
-          'Введите Номер Номенклатуры',
+          'Введите Номер Накладной',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         content: TextField(
           controller: controller,
           decoration: InputDecoration(
-            hintText: 'Номер Номенклатуры',
+            hintText: 'Номер Накладной',
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
             ),
@@ -122,6 +149,31 @@ class _FileListScreenState extends State<FileListScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             child: const Text('ОК', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool?> _showDeleteConfirmationDialog(BuildContext context, String fileName) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: const Text('Подтверждение удаления'),
+        content: Text('Вы уверены, что хотите удалить "$fileName"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Удалить', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -190,6 +242,11 @@ class _FileListScreenState extends State<FileListScreen> {
                       icon: const Icon(Icons.share, color: Colors.blueAccent),
                       onPressed: () => _shareFile(file),
                       tooltip: 'Поделиться',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                      onPressed: () => _deleteFile(file),
+                      tooltip: 'Удалить файл',
                     ),
                   ],
                 ),

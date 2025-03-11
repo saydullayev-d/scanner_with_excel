@@ -129,6 +129,7 @@ class _CameraScannerPageState extends State<CameraScannerPage> with SingleTicker
     }
   }
 
+
   String removeUnreadableCharacters(String input) {
     RegExp regExp = RegExp(r'[^\x20-\x7E]');
     return input.replaceAll(regExp, '');
@@ -139,22 +140,13 @@ class _CameraScannerPageState extends State<CameraScannerPage> with SingleTicker
       message: message,
       duration: const Duration(seconds: 3),
       backgroundColor: color,
-      margin: const EdgeInsets.all(12),
-      borderRadius: BorderRadius.circular(12),
-      flushbarPosition: FlushbarPosition.TOP,
-      boxShadows: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.2),
-          blurRadius: 8,
-          offset: const Offset(0, 4),
-        ),
-      ],
+      margin: const EdgeInsets.all(8),
+      borderRadius: BorderRadius.circular(8),
+      flushbarPosition: FlushbarPosition.BOTTOM,
       icon: Icon(
         color == Colors.green ? Icons.check_circle : Icons.warning_amber_rounded,
         color: Colors.white,
-        size: 28,
       ),
-      leftBarIndicatorColor: Colors.white,
     ).show(context);
   }
 

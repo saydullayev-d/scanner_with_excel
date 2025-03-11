@@ -1,0 +1,2 @@
+C:/Users/User/Desktop/scanner_with_excel/android/app/.cxx/RelWithDebInfo/173u4g5l/x86/CMakeFiles/edit_cache.dir
+C:/Users/User/Desktop/scanner_with_excel/android/app/.cxx/RelWithDebInfo/173u4g5l/x86/CMakeFiles/rebuild_cache.dir
