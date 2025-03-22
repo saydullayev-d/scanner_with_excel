@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:another_flushbar/flushbar.dart';
 import 'package:scanner_with_excel/services/excel_helper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CameraScannerPage extends StatefulWidget {
   final String filePath;
@@ -36,6 +37,7 @@ class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProvi
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _channel.setMethodCallHandler(_handleMethodCall);
+    _loadSavedDevice(); // Загружаем сохраненное устройство при инициализации
     _checkConnectionStatus();
     _requestPermissions();
   }
@@ -144,6 +146,36 @@ class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProvi
   String removeUnreadableCharacters(String input) {
     RegExp regExp = RegExp(r'[^\x20-\x7E]');
     return input.replaceAll(regExp, '');
+  }
+
+  Future<void> _loadSavedDevice() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedDevice = prefs.getString('selectedDevice');
+    if (savedDevice != null) {
+      setState(() {
+        selectedDevice = savedDevice;
+      });
+    }
+  }
+
+  Future<void> _saveDevice() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selectedDevice', selectedDevice!);
+  }
+
+  Future<void> _connectToSavedDevice(String device) async {
+    try {
+      String address = device.split(" - ")[1];
+      await _channel.invokeMethod('connectToDevice', {"address": address});
+      setState(() {
+        isConnected = true;
+        connectedDeviceName = device;
+        _animationController.stop();
+      });
+      _showNotification(context, "Автоматически подключено к $device", Colors.green);
+    } on PlatformException catch (e) {
+      _showNotification(context, "Ошибка автоподключения: ${e.message}", Colors.red);
+    }
   }
 
   void _showNotification(BuildContext context, String message, Color color) {

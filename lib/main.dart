@@ -4,7 +4,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:open_file/open_file.dart';
 import 'package:scanner_with_excel/services/excel_helper.dart';
 import 'package:scanner_with_excel/pages/scanner_page.dart';
-import 'package:intl/intl.dart'; // For date formatting
+import 'package:intl/intl.dart';
+import 'package:scanner_with_excel/pages/setting_page.dart';
 
 void main() {
   runApp(MyApp());
@@ -61,6 +62,13 @@ class _FileListScreenState extends State<FileListScreen> {
       await excelHelper.createExcelFileWithItemNumber(newFile.path, itemNumber);
       _loadFiles();
     }
+  }
+
+  Future<void> _openSettings() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => SettingsScreen()),
+    );
   }
 
   void _openFile(File file) async {
@@ -256,14 +264,32 @@ class _FileListScreenState extends State<FileListScreen> {
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addFile,
-        child: const Icon(Icons.add, size: 28),
-        tooltip: 'Добавить файл',
-        foregroundColor: Colors.white,
-        backgroundColor: Colors.blueAccent,
-        elevation: 6,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(left: 30),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            FloatingActionButton(
+              onPressed: _openSettings,
+              child: const Icon(Icons.settings, size: 28),
+              tooltip: 'Настройки',
+              foregroundColor: Colors.white,
+              backgroundColor: Colors.blueAccent,
+              elevation: 6,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            ),
+            Expanded(child: Container()),
+            FloatingActionButton(
+              onPressed: _addFile,
+              child: const Icon(Icons.add, size: 28),
+              tooltip: 'Добавить файл',
+              foregroundColor: Colors.white,
+              backgroundColor: Colors.blueAccent,
+              elevation: 6,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            )
+          ],
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
