@@ -58,7 +58,7 @@ class _FileListScreenState extends State<FileListScreen> {
     final itemNumber = await _showItemNumberDialog(context);
     if (itemNumber != null && itemNumber.isNotEmpty) {
       final currentDate = DateFormat('yyyyMMdd').format(DateTime.now());
-      final newFile = File('$dirPath/накладная_${itemNumber}.xlsx');
+      final newFile = File('$dirPath/накладная_$itemNumber.xlsx');
       await excelHelper.createExcelFileWithItemNumber(newFile.path, itemNumber);
       _loadFiles();
     }
@@ -271,12 +271,12 @@ class _FileListScreenState extends State<FileListScreen> {
           children: [
             FloatingActionButton(
               onPressed: _openSettings,
-              child: const Icon(Icons.settings, size: 28),
               tooltip: 'Настройки',
               foregroundColor: Colors.white,
               backgroundColor: Colors.blueAccent,
               elevation: 6,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              child: const Icon(Icons.settings, size: 28),
             ),
             Expanded(child: Container()),
             FloatingActionButton(

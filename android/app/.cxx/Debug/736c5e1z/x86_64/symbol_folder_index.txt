@@ -1,0 +1,1 @@
+/home/pavuk/projects/scanner_with_excel/build/app/intermediates/cxx/Debug/736c5e1z/obj/x86_64

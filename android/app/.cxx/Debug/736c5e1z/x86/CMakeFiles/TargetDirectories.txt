@@ -1,0 +1,2 @@
+/home/pavuk/projects/scanner_with_excel/android/app/.cxx/Debug/736c5e1z/x86/CMakeFiles/edit_cache.dir
+/home/pavuk/projects/scanner_with_excel/android/app/.cxx/Debug/736c5e1z/x86/CMakeFiles/rebuild_cache.dir

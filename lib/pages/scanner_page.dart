@@ -158,25 +158,6 @@ class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProvi
     }
   }
 
-  Future<void> _saveDevice() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('selectedDevice', selectedDevice!);
-  }
-
-  Future<void> _connectToSavedDevice(String device) async {
-    try {
-      String address = device.split(" - ")[1];
-      await _channel.invokeMethod('connectToDevice', {"address": address});
-      setState(() {
-        isConnected = true;
-        connectedDeviceName = device;
-        _animationController.stop();
-      });
-      _showNotification(context, "Автоматически подключено к $device", Colors.green);
-    } on PlatformException catch (e) {
-      _showNotification(context, "Ошибка автоподключения: ${e.message}", Colors.red);
-    }
-  }
 
   void _showNotification(BuildContext context, String message, Color color) {
     Flushbar(

@@ -70,7 +70,6 @@ class ExcelHelper {
 
     var firstSheetName = excel.tables.keys.first;
     Sheet? sheet = excel[firstSheetName];
-    if (sheet == null) return true;
 
     for (var row in sheet.rows) {
       // Проверяем, что в строке есть хотя бы одна ячейка, и она равна искомому значению
@@ -93,20 +92,16 @@ class ExcelHelper {
 
     var firstSheetName = excel.tables.keys.first;
     Sheet? sheet = excel[firstSheetName];
-    if (sheet != null) {
-      // Проверяем уникальность перед добавлением
-      if (await isDataUnique(data)) {
-        sheet.appendRow([data]);
-        // Сохраняем изменения в файл
-        file.writeAsBytesSync(excel.save()!, flush: true);
-        print('Данные добавлены: $data');
-      } else {
-        print('Данные уже существуют: $data');
-      }
+    // Проверяем уникальность перед добавлением
+    if (await isDataUnique(data)) {
+      sheet.appendRow([data]);
+      // Сохраняем изменения в файл
+      file.writeAsBytesSync(excel.save()!, flush: true);
+      print('Данные добавлены: $data');
     } else {
-      print('Ошибка: Первый лист не найден!');
+      print('Данные уже существуют: $data');
     }
-  }
+    }
 
   /// Получает список всех Excel файлов в каталоге
   Future<List<String>> getExcelFiles() async {

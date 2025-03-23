@@ -1,0 +1,20 @@
+{
+  "buildFiles": [
+    "/home/pavuk/flutter/packages/flutter_tools/gradle/src/main/groovy/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/home/pavuk/Android/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/home/pavuk/projects/scanner_with_excel/android/app/.cxx/Debug/736c5e1z/arm64-v8a",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/home/pavuk/Android/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/home/pavuk/projects/scanner_with_excel/android/app/.cxx/Debug/736c5e1z/arm64-v8a",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {}
+}
