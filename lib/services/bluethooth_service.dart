@@ -11,30 +11,26 @@ class BluethoothService {
 
 // запрос разрешения
 
-  Future<int> requestPermissions() async {
+Future<bool> requestPermissions() async {
+  try {
     Map<Permission, PermissionStatus> statuses = await [
       Permission.bluetooth,
       Permission.bluetoothScan,
       Permission.bluetoothConnect,
     ].request();
+
     if (statuses.values.every((status) => status.isGranted)) {
-      return 1;
+      return true;
     } else {
       // Если разрешения нет, запрашиваем через нативный код
-      try {
-        final bool granted =
-            await _channel.invokeMethod('requestBluetoothPermission');
-        if (granted) {
-          return 1;
-        } else {
-          return 2;
-        }
-      } on PlatformException catch (e) {
-        debugPrint(e.message);
-      }
+      final bool granted = await _channel.invokeMethod('requestBluetoothPermission');
+      return granted;
     }
-    return 0;
+  } on PlatformException catch (e) {
+    debugPrint("Ошибка при запросе разрешений: ${e.message}");
+    return false;
   }
+}
 
 // поиск устройств
 

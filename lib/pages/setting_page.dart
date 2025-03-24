@@ -30,23 +30,40 @@ class _SettingsScreenState extends State<SettingsScreen>
     _initializeBluetooth();
   }
 
-  Future<void> _initializeBluetooth() async {
-    isConnected = bluethoothService.isConnected;
-    await bluethoothService.requestPermissions();
-
-    List<dynamic> scannedDevices = await bluethoothService.scanDevices();
-
-    setState(() {
-      devices = scannedDevices;
-      if (isConnected) {
-        connectedDeviceName = bluethoothService.connectedDeviceName;
-        _animationController.stop();
-      } else {
-        _animationController.repeat(reverse: true);
-      }
-    });
+Future<void> _initializeBluetooth() async {
+  isConnected = bluethoothService.isConnected;
+  bool permissionsGranted = await bluethoothService.requestPermissions();
+  if (!permissionsGranted) {
+    print("Разрешения на Bluetooth не предоставлены");
+    return;
   }
 
+  List<dynamic> scannedDevices = await bluethoothService.scanDevices();
+
+  setState(() {
+    devices = scannedDevices;
+    if (isConnected) {
+      connectedDeviceName = bluethoothService.connectedDeviceName;
+      _animationController.stop();
+    } else {
+      print("Попытка подключения к сохранённому устройству...");
+      bluethoothService.connectToSavedDevice().then((_) {
+        setState(() {
+          isConnected = bluethoothService.isConnected;
+          connectedDeviceName = bluethoothService.connectedDeviceName;
+          if (isConnected) {
+            print("Успешно подключено к: $connectedDeviceName");
+          } else {
+            print("Не удалось подключиться");
+          }
+          _animationController.stop();
+        });
+      }).catchError((e) {
+        print("Ошибка при подключении: $e");
+      });
+    }
+  });
+}
 
   @override
   Widget build(BuildContext context) {
@@ -146,13 +163,13 @@ class _SettingsScreenState extends State<SettingsScreen>
                 onPressed: isConnected
                     ? null
                     : () async {
-                  List<dynamic> scannedDevices = await bluethoothService.scanDevices();
-                  setState(() {
-                    devices = scannedDevices;
-                  });
-                },
+                        List<dynamic> scannedDevices =
+                            await bluethoothService.scanDevices();
+                        setState(() {
+                          devices = scannedDevices;
+                        });
+                      },
               ),
-
               const SizedBox(height: 20),
               _buildAnimatedButton(
                 text: "Подключиться",
@@ -161,20 +178,22 @@ class _SettingsScreenState extends State<SettingsScreen>
                 onPressed: isConnected || selectedDevice == null
                     ? null
                     : () async {
-                  await bluethoothService.connectToDevice(selectedDevice!);
-                  setState(() {
-                    isConnected = bluethoothService.isConnected;
-                    connectedDeviceName = bluethoothService.connectedDeviceName;
-                  });
-                },
+                        await bluethoothService
+                            .connectToDevice(selectedDevice!);
+                        setState(() {
+                          isConnected = bluethoothService.isConnected;
+                          connectedDeviceName =
+                              bluethoothService.connectedDeviceName;
+                        });
+                      },
               ),
-
               const SizedBox(height: 20),
               _buildAnimatedButton(
                 text: "Отключиться",
                 icon: Icons.bluetooth_disabled,
                 color: Colors.redAccent,
-                onPressed: isConnected ? bluethoothService.disconnectDevice : null,
+                onPressed:
+                    isConnected ? bluethoothService.disconnectDevice : null,
               ),
             ],
           ),
