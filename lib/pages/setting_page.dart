@@ -11,7 +11,11 @@ class _SettingsScreenState extends State<SettingsScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _buttonAnimation;
+  String? selectedDevice;
+  String? connectedDeviceName;
   bool isConnected = false;
+  List<dynamic> devices = [];
+  BluethoothService bluethoothService = BluethoothService();
 
   @override
   void initState() {
@@ -23,9 +27,26 @@ class _SettingsScreenState extends State<SettingsScreen>
     _buttonAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
-    BluethoothService bluethoothService = BluethoothService();
-    isConnected = bluethoothService.isConnected;
+    _initializeBluetooth();
   }
+
+  Future<void> _initializeBluetooth() async {
+    isConnected = bluethoothService.isConnected;
+    await bluethoothService.requestPermissions();
+
+    List<dynamic> scannedDevices = await bluethoothService.scanDevices();
+
+    setState(() {
+      devices = scannedDevices;
+      if (isConnected) {
+        connectedDeviceName = bluethoothService.connectedDeviceName;
+        _animationController.stop();
+      } else {
+        _animationController.repeat(reverse: true);
+      }
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -122,21 +143,38 @@ class _SettingsScreenState extends State<SettingsScreen>
                 text: "Сканировать устройства",
                 icon: Icons.bluetooth_searching,
                 color: Colors.blueAccent,
-                onPressed: isConnected ? null : _scanDevices,
+                onPressed: isConnected
+                    ? null
+                    : () async {
+                  List<dynamic> scannedDevices = await bluethoothService.scanDevices();
+                  setState(() {
+                    devices = scannedDevices;
+                  });
+                },
               ),
+
               const SizedBox(height: 20),
               _buildAnimatedButton(
                 text: "Подключиться",
                 icon: Icons.bluetooth_connected,
                 color: Colors.green,
-                onPressed: isConnected ? null : _connectToDevice,
+                onPressed: isConnected || selectedDevice == null
+                    ? null
+                    : () async {
+                  await bluethoothService.connectToDevice(selectedDevice!);
+                  setState(() {
+                    isConnected = bluethoothService.isConnected;
+                    connectedDeviceName = bluethoothService.connectedDeviceName;
+                  });
+                },
               ),
+
               const SizedBox(height: 20),
               _buildAnimatedButton(
                 text: "Отключиться",
                 icon: Icons.bluetooth_disabled,
                 color: Colors.redAccent,
-                onPressed: isConnected ? _disconnectDevice : null,
+                onPressed: isConnected ? bluethoothService.disconnectDevice : null,
               ),
             ],
           ),

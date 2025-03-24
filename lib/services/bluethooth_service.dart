@@ -6,14 +6,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 class BluethoothService {
   static const MethodChannel _channel =
       MethodChannel("com.ssline.scanner_with_excel/bluetooth");
-  List<String> devices = [];
-  String? selectedDevice;
   String? connectedDeviceName;
   bool isConnected = false;
 
 // запрос разрешения
 
-  Future<int> _requestPermissions() async {
+  Future<int> requestPermissions() async {
     Map<Permission, PermissionStatus> statuses = await [
       Permission.bluetooth,
       Permission.bluetoothScan,
@@ -40,7 +38,7 @@ class BluethoothService {
 
 // поиск устройств
 
-  Future<List<dynamic>> _scanDevices() async {
+  Future<List<dynamic>> scanDevices() async {
     List<dynamic> result = [];
     try {
       result = await _channel.invokeMethod('scanDevices');
@@ -52,7 +50,7 @@ class BluethoothService {
 
 // подключение устройства
 
-  Future<bool> _connectToDevice(String? selectedDevice) async {
+  Future<bool> connectToDevice(String? selectedDevice) async {
     if (selectedDevice == null) {
       return false;
     }
@@ -70,7 +68,7 @@ class BluethoothService {
 
 // отключение устройства
 
-  Future<void> _disconnectDevice() async {
+  Future<void> disconnectDevice() async {
     try {
       await _channel.invokeMethod('disconnect');
       isConnected = false;
@@ -80,18 +78,23 @@ class BluethoothService {
     }
   }
 
-  Future<void> _saveDevice() async {
+  Future<void> saveDevice(String selectedDevice) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('selectedDevice', selectedDevice!);
   }
 
-  Future<bool> _connectToSavedDevice(String device) async {
+  Future<bool> connectToSavedDevice() async {
     try {
-      String address = device.split(" - ")[1];
-      await _channel.invokeMethod('connectToDevice', {"address": address});
-      isConnected = true;
-      connectedDeviceName = device;
-      return true;
+      final prefs = await SharedPreferences.getInstance();
+      final savedDevice = prefs.getString('selectedDevice');
+      if (savedDevice != null) {
+        String address = savedDevice.split(" - ")[1];
+        await _channel.invokeMethod('connectToDevice', {"address": address});
+        isConnected = true;
+        connectedDeviceName = savedDevice;
+        return true;
+      }
+      return false;
     } on PlatformException catch (e) {
       debugPrint(e.message);
       return false;
