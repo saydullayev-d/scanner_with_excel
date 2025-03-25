@@ -192,8 +192,15 @@ Future<void> _initializeBluetooth() async {
                 text: "Отключиться",
                 icon: Icons.bluetooth_disabled,
                 color: Colors.redAccent,
-                onPressed:
-                    isConnected ? bluethoothService.disconnectDevice : null,
+                onPressed: isConnected
+                    ? () async {
+                  await bluethoothService.disconnectDevice();
+                  setState(() {
+                    isConnected = bluethoothService.isConnected;
+                    connectedDeviceName = bluethoothService.connectedDeviceName;
+                  });
+                }
+                    : null,
               ),
             ],
           ),

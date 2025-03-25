@@ -55,6 +55,7 @@ Future<bool> requestPermissions() async {
       await _channel.invokeMethod('connectToDevice', {"address": address});
       isConnected = true;
       connectedDeviceName = selectedDevice;
+      saveDevice(selectedDevice);
       return true;
     } on PlatformException catch (e) {
       debugPrint(e.message);
@@ -83,6 +84,7 @@ Future<bool> requestPermissions() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final savedDevice = prefs.getString('selectedDevice');
+      debugPrint("Сохранённое устройство: $savedDevice");
       if (savedDevice != null) {
         String address = savedDevice.split(" - ")[1];
         await _channel.invokeMethod('connectToDevice', {"address": address});
