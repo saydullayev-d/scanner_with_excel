@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:another_flushbar/flushbar.dart';
 import 'package:scanner_with_excel/services/excel_helper.dart';
+import 'package:scanner_with_excel/services/bluethooth_service.dart';
 
 class CameraScannerPage extends StatefulWidget {
   final String filePath;
@@ -17,6 +18,9 @@ class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProvi
   late ExcelHelper excelHelper;
   List<String> dataMarks = [];
   bool isConnected = false;
+  String? selectedDevice;
+  String? connectedDeviceName;
+  BluethoothService bluethoothService = BluethoothService();
 
   @override
   void initState() {
@@ -24,6 +28,15 @@ class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProvi
     excelHelper = ExcelHelper();
     excelHelper.setFilePath(widget.filePath);
     _channel.setMethodCallHandler(_handleMethodCall);
+  }
+
+  Future<void> _initializeBluetooth() async {
+    isConnected = bluethoothService.isConnected;
+    bool permissionsGranted = await bluethoothService.requestPermissions();
+    if (!permissionsGranted) {
+      print("Разрешения на Bluetooth не предоставлены");
+      return;
+    }
   }
 
   Future<dynamic> _handleMethodCall(MethodCall call) async {
