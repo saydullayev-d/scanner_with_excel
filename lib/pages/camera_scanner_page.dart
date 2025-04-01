@@ -3,16 +3,17 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:another_flushbar/flushbar.dart';
 import 'package:scanner_with_excel/services/excel_helper.dart';
 
-class CameraScannerPage extends StatefulWidget {
+class CameraScannerPageCamera extends StatefulWidget {
   final String filePath;
+  final Function(String) onCodeScanned; // Callback для передачи данных
 
-  const CameraScannerPage({required this.filePath});
+  const CameraScannerPageCamera({required this.filePath, required this.onCodeScanned});
 
   @override
-  State<CameraScannerPage> createState() => _CameraScannerPageState();
+  State<CameraScannerPageCamera> createState() => _CameraScannerPageCameraState();
 }
 
-class _CameraScannerPageState extends State<CameraScannerPage> with SingleTickerProviderStateMixin {
+class _CameraScannerPageCameraState extends State<CameraScannerPageCamera> with SingleTickerProviderStateMixin {
   final MobileScannerController controller = MobileScannerController();
   bool isScanningPaused = false;
   late ExcelHelper excelHelper;
@@ -121,12 +122,12 @@ class _CameraScannerPageState extends State<CameraScannerPage> with SingleTicker
   Future<void> _handleScannedData(String scannedData) async {
     if (await excelHelper.isDataUnique(scannedData)) {
       await excelHelper.addData(scannedData);
+      widget.onCodeScanned(scannedData); // Передаем данные через callback
       _showNotification(context, "Код добавлен", Colors.green);
     } else {
       _showNotification(context, "Код уже существует", Colors.orange);
     }
   }
-
 
   String removeUnreadableCharacters(String input) {
     RegExp regExp = RegExp(r'[^\x20-\x7E]');
@@ -140,7 +141,7 @@ class _CameraScannerPageState extends State<CameraScannerPage> with SingleTicker
       backgroundColor: color,
       margin: const EdgeInsets.all(8),
       borderRadius: BorderRadius.circular(8),
-      flushbarPosition: FlushbarPosition.BOTTOM,
+      flushbarPosition: FlushbarPosition.TOP,
       icon: Icon(
         color == Colors.green ? Icons.check_circle : Icons.warning_amber_rounded,
         color: Colors.white,
@@ -221,43 +222,19 @@ class ScannerOverlayPainter extends CustomPainter {
 
     final double cornerLength = 30;
 
-    canvas.drawLine(
-        scanBoxRect.topLeft,
-        scanBoxRect.topLeft.translate(cornerLength, 0),
-        paintCorners);
-    canvas.drawLine(
-        scanBoxRect.topLeft,
-        scanBoxRect.topLeft.translate(0, cornerLength),
-        paintCorners);
+    canvas.drawLine(scanBoxRect.topLeft, scanBoxRect.topLeft.translate(cornerLength, 0), paintCorners);
+    canvas.drawLine(scanBoxRect.topLeft, scanBoxRect.topLeft.translate(0, cornerLength), paintCorners);
 
-    canvas.drawLine(
-        scanBoxRect.topRight,
-        scanBoxRect.topRight.translate(-cornerLength, 0),
-        paintCorners);
-    canvas.drawLine(
-        scanBoxRect.topRight,
-        scanBoxRect.topRight.translate(0, cornerLength),
-        paintCorners);
+    canvas.drawLine(scanBoxRect.topRight, scanBoxRect.topRight.translate(-cornerLength, 0), paintCorners);
+    canvas.drawLine(scanBoxRect.topRight, scanBoxRect.topRight.translate(0, cornerLength), paintCorners);
 
-    canvas.drawLine(
-        scanBoxRect.bottomLeft,
-        scanBoxRect.bottomLeft.translate(cornerLength, 0),
-        paintCorners);
-    canvas.drawLine(
-        scanBoxRect.bottomLeft,
-        scanBoxRect.bottomLeft.translate(0, -cornerLength),
-        paintCorners);
+    canvas.drawLine(scanBoxRect.bottomLeft, scanBoxRect.bottomLeft.translate(cornerLength, 0), paintCorners);
+    canvas.drawLine(scanBoxRect.bottomLeft, scanBoxRect.bottomLeft.translate(0, -cornerLength), paintCorners);
 
-    canvas.drawLine(
-        scanBoxRect.bottomRight,
-        scanBoxRect.bottomRight.translate(-cornerLength, 0),
-        paintCorners);
-    canvas.drawLine(
-        scanBoxRect.bottomRight,
-        scanBoxRect.bottomRight.translate(0, -cornerLength),
-        paintCorners);
+    canvas.drawLine(scanBoxRect.bottomRight, scanBoxRect.bottomRight.translate(-cornerLength, 0), paintCorners);
+    canvas.drawLine(scanBoxRect.bottomRight, scanBoxRect.bottomRight.translate(0, -cornerLength), paintCorners);
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => true; // Repaint for animation
+  bool shouldRepaint(CustomPainter oldDelegate) => true;
 }

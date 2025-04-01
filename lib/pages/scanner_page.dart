@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:another_flushbar/flushbar.dart';
+import 'package:scanner_with_excel/pages/setting_page.dart';
 import 'package:scanner_with_excel/services/excel_helper.dart';
-import 'package:scanner_with_excel/services/bluethooth_service.dart';
+import 'package:scanner_with_excel/pages/camera_scanner_page.dart';
 
 class CameraScannerPage extends StatefulWidget {
   final String filePath;
@@ -18,9 +20,8 @@ class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProvi
   late ExcelHelper excelHelper;
   List<String> dataMarks = [];
   bool isConnected = false;
-  String? selectedDevice;
-  String? connectedDeviceName;
-  BluethoothService bluethoothService = BluethoothService();
+  int? highlightedIndex; // Индекс подсвечиваемого элемента
+  Timer? _highlightTimer; // Таймер для сброса подсветки
 
   @override
   void initState() {
@@ -30,27 +31,29 @@ class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProvi
     _channel.setMethodCallHandler(_handleMethodCall);
   }
 
-  Future<void> _initializeBluetooth() async {
-    isConnected = bluethoothService.isConnected;
-    bool permissionsGranted = await bluethoothService.requestPermissions();
-    if (!permissionsGranted) {
-      print("Разрешения на Bluetooth не предоставлены");
-      return;
-    }
-  }
-
   Future<dynamic> _handleMethodCall(MethodCall call) async {
     if (call.method == "onDataReceived") {
       String scannedData = call.arguments;
       String cleanedData = removeUnreadableCharacters(scannedData);
-      setState(() {
-        if(!dataMarks.contains(cleanedData)){
-          dataMarks.add(cleanedData);
-        }
-
-      });
+      _handleDuplicateHighlight(cleanedData);
       await _handleScannedData(cleanedData);
     }
+  }
+
+  void _handleDuplicateHighlight(String scannedData) {
+    setState(() {
+      if (dataMarks.contains(scannedData)) {
+        highlightedIndex = dataMarks.indexOf(scannedData); // Подсвечиваем существующий элемент
+        _highlightTimer?.cancel(); // Отменяем предыдущий таймер, если он есть
+        _highlightTimer = Timer(const Duration(seconds: 2), () {
+          setState(() {
+            highlightedIndex = null; // Сбрасываем подсветку через 2 секунды
+          });
+        });
+      } else {
+        dataMarks.add(scannedData); // Добавляем только уникальные коды
+      }
+    });
   }
 
   Future<void> _handleScannedData(String scannedData) async {
@@ -89,10 +92,32 @@ class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProvi
     ).show(context);
   }
 
+  void _openCamera() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CameraScannerPageCamera(
+          filePath: widget.filePath,
+          onCodeScanned: (String scannedData) {
+            _handleDuplicateHighlight(scannedData);
+          },
+        ),
+      ),
+    );
+    debugPrint("Кнопка открыть камеру нажата");
+  }
+
+  @override
+  void dispose() {
+    _highlightTimer?.cancel(); // Очищаем таймер при закрытии страницы
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        foregroundColor: Colors.white,
         title: Text(
           "Сканер Bluetooth${isConnected ? " (Подключено)" : ""}",
           style: const TextStyle(
@@ -113,6 +138,13 @@ class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProvi
         elevation: 8,
         shadowColor: Colors.black.withOpacity(0.4),
         centerTitle: true,
+        actions: [
+          IconButton(
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsScreen())),
+            icon: const Icon(Icons.settings, color: Colors.white),
+            tooltip: 'Настройки',
+          ),
+        ],
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -163,6 +195,8 @@ class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProvi
               padding: const EdgeInsets.all(12),
               itemCount: dataMarks.length,
               itemBuilder: (context, index) {
+                bool isHighlighted = highlightedIndex == index;
+
                 return Card(
                   elevation: 2,
                   margin: const EdgeInsets.symmetric(vertical: 6),
@@ -174,17 +208,20 @@ class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProvi
                     child: Row(
                       children: [
                         Icon(
-                          Icons.check_circle_outline,
-                          color: Colors.green[400],
+                          isHighlighted
+                              ? Icons.warning_amber_rounded
+                              : Icons.check_circle_outline,
+                          color: isHighlighted ? Colors.red[400] : Colors.green[400],
                           size: 24,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             dataMarks[index],
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w500,
+                              color: isHighlighted ? Colors.red : Colors.black,
                             ),
                           ),
                         ),
@@ -197,23 +234,47 @@ class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProvi
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.pop(context),
-        label: const Text(
-          'Готово',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          FloatingActionButton.extended(
+            onPressed: _openCamera,
+            label: const Text(
+              'Камера',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            icon: const Icon(Icons.camera_alt, color: Colors.white),
+            backgroundColor: Colors.blue[600],
+            elevation: 8,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            tooltip: 'Открыть камеру',
           ),
-        ),
-        icon: const Icon(Icons.done, color: Colors.white),
-        backgroundColor: Colors.green[600],
-        elevation: 8,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        tooltip: 'Завершить сканирование',
+          const SizedBox(width: 16),
+          FloatingActionButton.extended(
+            onPressed: () => Navigator.pop(context),
+            label: const Text(
+              'Готово',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            icon: const Icon(Icons.done, color: Colors.white),
+            backgroundColor: Colors.green[600],
+            elevation: 8,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            tooltip: 'Завершить сканирование',
+          ),
+        ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );

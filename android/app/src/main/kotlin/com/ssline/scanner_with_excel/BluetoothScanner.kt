@@ -4,6 +4,7 @@ import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
+import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -20,6 +21,7 @@ class BluetoothScanner : FlutterPlugin, MethodChannel.MethodCallHandler, Activit
     companion object {
         private const val CHANNEL = "com.ssline.scanner_with_excel/bluetooth"
         private const val REQUEST_BLUETOOTH_PERMISSIONS = 1001
+        private const val REQUEST_ENABLE_BLUETOOTH = 1002
     }
 
     private var bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
@@ -53,6 +55,15 @@ class BluetoothScanner : FlutterPlugin, MethodChannel.MethodCallHandler, Activit
                 false
             }
         }
+        binding.addActivityResultListener { requestCode, resultCode, _ ->
+            if (requestCode == REQUEST_ENABLE_BLUETOOTH) {
+                val enabled = resultCode == android.app.Activity.RESULT_OK
+                channel?.invokeMethod("onBluetoothEnabled", enabled)
+                true
+            } else {
+                false
+            }
+        }
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
@@ -70,6 +81,8 @@ class BluetoothScanner : FlutterPlugin, MethodChannel.MethodCallHandler, Activit
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
+            "isBluetoothEnabled" -> isBluetoothEnabled(result)
+            "requestBluetoothEnable" -> requestBluetoothEnable(result)
             "scanDevices" -> scanDevices(result)
             "connectToDevice" -> {
                 val address = call.argument<String>("address")
@@ -87,15 +100,43 @@ class BluetoothScanner : FlutterPlugin, MethodChannel.MethodCallHandler, Activit
         }
     }
 
+    private fun isBluetoothEnabled(result: MethodChannel.Result) {
+        val isEnabled = bluetoothAdapter?.isEnabled ?: false
+        result.success(isEnabled)
+    }
+
+    private fun requestBluetoothEnable(result: MethodChannel.Result) {
+        val activity = activityBinding?.activity ?: run {
+            result.error("ACTIVITY_ERROR", "Активность не найдена", null)
+            return
+        }
+        if (bluetoothAdapter == null) {
+            result.error("BLUETOOTH_UNAVAILABLE", "Bluetooth не поддерживается на устройстве", null)
+            return
+        }
+        if (!bluetoothAdapter!!.isEnabled) {
+            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+            ActivityCompat.startActivityForResult(activity, enableBtIntent, REQUEST_ENABLE_BLUETOOTH, null)
+            // Результат будет обработан в onActivityResult
+            result.success(null) // Пока возвращаем null, так как результат асинхронный
+        } else {
+            result.success(true) // Bluetooth уже включён
+        }
+    }
+
     private fun scanDevices(result: MethodChannel.Result) {
-        val adapter = bluetoothAdapter
-        if (adapter == null || !adapter.isEnabled) {
-            result.error("BLUETOOTH_ERROR", "Bluetooth выключен", null)
+        val adapter = bluetoothAdapter ?: run {
+            result.error("BLUETOOTH_UNAVAILABLE", "Bluetooth не поддерживается", null)
+            return
+        }
+
+        if (!adapter.isEnabled) {
+            requestBluetoothEnable(result)
             return
         }
 
         if (!hasBluetoothPermissions()) {
-            result.error("PERMISSION_ERROR", "Нет разрешения на Bluetooth", null)
+            requestBluetoothPermission(result)
             return
         }
 
@@ -104,13 +145,23 @@ class BluetoothScanner : FlutterPlugin, MethodChannel.MethodCallHandler, Activit
     }
 
     private fun connectToDevice(deviceAddress: String, result: MethodChannel.Result) {
-        val device = bluetoothAdapter?.getRemoteDevice(deviceAddress)
+        val adapter = bluetoothAdapter ?: run {
+            result.error("BLUETOOTH_UNAVAILABLE", "Bluetooth не поддерживается", null)
+            return
+        }
+
+        if (!adapter.isEnabled) {
+            requestBluetoothEnable(result)
+            return
+        }
+
+        val device = adapter.getRemoteDevice(deviceAddress)
         currentDevice = device
         Thread {
             try {
                 val sppUUID = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb")
-                socket = device?.createInsecureRfcommSocketToServiceRecord(sppUUID)
-                bluetoothAdapter?.cancelDiscovery()
+                socket = device.createInsecureRfcommSocketToServiceRecord(sppUUID)
+                adapter.cancelDiscovery()
                 socket?.connect()
                 inputStream = socket?.inputStream
                 startReading()
@@ -186,7 +237,6 @@ class BluetoothScanner : FlutterPlugin, MethodChannel.MethodCallHandler, Activit
             arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN),
             REQUEST_BLUETOOTH_PERMISSIONS
         )
-        // Результат будет отправлен через onRequestPermissionsResult
         result.success(false) // Временно возвращаем false, пока пользователь не ответит
     }
 }
