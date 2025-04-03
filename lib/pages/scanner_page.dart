@@ -5,6 +5,7 @@ import 'package:another_flushbar/flushbar.dart';
 import 'package:scanner_with_excel/pages/setting_page.dart';
 import 'package:scanner_with_excel/services/excel_helper.dart';
 import 'package:scanner_with_excel/pages/camera_scanner_page.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class CameraScannerPage extends StatefulWidget {
   final String filePath;
@@ -20,8 +21,9 @@ class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProvi
   late ExcelHelper excelHelper;
   List<String> dataMarks = [];
   bool isConnected = false;
-  int? highlightedIndex; // Индекс подсвечиваемого элемента
-  Timer? _highlightTimer; // Таймер для сброса подсветки
+  int? highlightedIndex;
+  Timer? _highlightTimer;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
@@ -60,6 +62,13 @@ class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProvi
     if (await excelHelper.isDataUnique(scannedData)) {
       await excelHelper.addData(scannedData);
       _showNotification(context, "Код добавлен", Colors.green);
+      debugPrint("Попытка воспроизвести звук");
+      try {
+        await _audioPlayer.play(AssetSource('success.mp3'), volume: 30);
+        debugPrint("Звук успешно воспроизведён");
+      } catch (e) {
+        debugPrint("Ошибка воспроизведения звука: $e");
+      }
     } else {
       _showNotification(context, "Код уже существует", Colors.orange);
     }
@@ -110,6 +119,7 @@ class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProvi
   @override
   void dispose() {
     _highlightTimer?.cancel(); // Очищаем таймер при закрытии страницы
+    _audioPlayer.dispose();
     super.dispose();
   }
 
