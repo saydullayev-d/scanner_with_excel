@@ -70,6 +70,7 @@ class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProvi
         debugPrint("Ошибка воспроизведения звука: $e");
       }
     } else {
+      await _audioPlayer.play(AssetSource('error.mp3'), volume: 30);
       _showNotification(context, "Код уже существует", Colors.orange);
     }
   }
@@ -78,6 +79,7 @@ class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProvi
     RegExp regExp = RegExp(r'[^\x20-\x7E]');
     return input.replaceAll(regExp, '');
   }
+
 
   void _showNotification(BuildContext context, String message, Color color) {
     Flushbar(
