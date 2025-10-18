@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'dart:io';
 import 'package:share_plus/share_plus.dart';
 import 'package:open_file/open_file.dart';
@@ -8,16 +9,22 @@ import 'package:scanner_with_excel/pages/scanner_page.dart';
 import 'package:intl/intl.dart';
 import 'package:scanner_with_excel/pages/setting_page.dart';
 import 'package:scanner_with_excel/services/bluethooth_service.dart';
+import 'package:scanner_with_excel/services/checkbox_state.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => CheckboxState(),
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'File List App',
+      title: 'Файлы',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -66,114 +73,162 @@ class _FileListScreenState extends State<FileListScreen> {
   void _showBluetoothConnectionFailedModal() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true, // Для обработки клавиатуры и прокрутки
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       backgroundColor: Colors.white,
       builder: (BuildContext context) {
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.bluetooth_disabled,
-                size: 60,
-                color: Colors.red,
+        // Получаем размеры экрана
+        final screenHeight = MediaQuery.of(context).size.height;
+        final screenWidth = MediaQuery.of(context).size.width;
+        final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: screenHeight * 0.7, // Максимум 70% высоты экрана
+            minHeight: 200, // Минимальная высота
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(screenWidth * 0.04), // Адаптивные отступы (4% ширины)
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom, // Учет клавиатуры
               ),
-              const SizedBox(height: 16),
-              const Text(
-                "Не удалось подключиться к Bluetooth",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                "Проверьте, включён ли Bluetooth и устройство в зоне действия.",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    spacing: 10,
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () async {
-                          Navigator.pop(context);
-                          try {
-                            await bluethoothService.connectToSavedDevice();
-                            final result = await bluethoothService.isConnected;
-                            if (result == true) {
-                              setState(() {
-                                isConnected = true;
-                              });
-                            } else {
-                              _showBluetoothConnectionFailedModal();
-                            }
-                          } on PlatformException catch (e) {
-                            debugPrint("Ошибка подключения: ${e.message}");
-                            _showBluetoothConnectionFailedModal();
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[600],
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        ),
-                        child: const Text(
-                          "Попробовать снова",
-                          style: TextStyle(fontSize: 16, color: Colors.white),
-                        ),
-                      ),
-                      ElevatedButton(
-                        onPressed: _openBluetoothSettings,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange[600],
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        ),
-                        child: const Text(
-                          "Настройки",
-                          style: TextStyle(fontSize: 16, color: Colors.white),
-                        ),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[400],
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        ),
-                        child: const Text(
-                          "Отмена",
-                          style: TextStyle(fontSize: 16, color: Colors.white),
-                        ),
-                      ),
-                    ],
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.bluetooth_disabled,
+                    size: screenWidth * 0.15, // Адаптивный размер иконки (15% ширины)
+                    color: Colors.red,
                   ),
-                ),
+                  SizedBox(height: screenHeight * 0.02), // Адаптивный отступ (2% высоты)
+                  Text(
+                    "Не удалось подключиться к Bluetooth",
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontSize: screenWidth * 0.05, // Адаптивный шрифт (5% ширины)
+                      color: Colors.black87,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: screenHeight * 0.02),
+                  Text(
+                    "Проверьте, включён ли Bluetooth и устройство в зоне действия.",
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontSize: screenWidth * 0.04, // Адаптивный шрифт (4% ширины)
+                      color: Colors.grey,
+                    ),
+                  ),
+                  SizedBox(height: screenHeight * 0.03),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      // Адаптивная ширина кнопок
+                      final buttonWidth = isLandscape
+                          ? constraints.maxWidth * 0.45 // В альбомной ориентации кнопки уже
+                          : constraints.maxWidth * 0.9; // В портретной — шире
+
+                      return Wrap(
+                        spacing: screenWidth * 0.02, // Отступ между кнопками
+                        runSpacing: screenHeight * 0.02, // Отступ между строками
+                        alignment: WrapAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: buttonWidth,
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                Navigator.pop(context);
+                                try {
+                                  await bluethoothService.connectToSavedDevice();
+                                  final result = await bluethoothService.isConnected;
+                                  if (result == true) {
+                                    setState(() {
+                                      isConnected = true;
+                                    });
+                                  } else {
+                                    _showBluetoothConnectionFailedModal();
+                                  }
+                                } on PlatformException catch (e) {
+                                  debugPrint("Ошибка подключения: ${e.message}");
+                                  _showBluetoothConnectionFailedModal();
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue[600],
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: screenWidth * 0.05,
+                                  vertical: screenHeight * 0.015,
+                                ),
+                              ),
+                              child: Text(
+                                "Попробовать снова",
+                                style: TextStyle(
+                                  fontSize: screenWidth * 0.04,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(
+                            width: buttonWidth,
+                            child: ElevatedButton(
+                              onPressed: _openBluetoothSettings,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange[600],
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: screenWidth * 0.05,
+                                  vertical: screenHeight * 0.015,
+                                ),
+                              ),
+                              child: Text(
+                                "Настройки",
+                                style: TextStyle(
+                                  fontSize: screenWidth * 0.04,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(
+                            width: buttonWidth,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.grey[400],
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: screenWidth * 0.05,
+                                  vertical: screenHeight * 0.015,
+                                ),
+                              ),
+                              child: Text(
+                                "Отмена",
+                                style: TextStyle(
+                                  fontSize: screenWidth * 0.04,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  SizedBox(height: screenHeight * 0.02),
+                ],
               ),
-              const SizedBox(height: 16),
-            ],
+            ),
           ),
         );
       },
@@ -192,12 +247,17 @@ class _FileListScreenState extends State<FileListScreen> {
   }
 
   Future<void> _addFile() async {
-    final itemNumber = await _showItemNumberDialog(context);
-    if (itemNumber != null && itemNumber.isNotEmpty) {
-      final currentDate = DateFormat('yyyyMMdd').format(DateTime.now());
-      final newFile = File('$dirPath/накладная_$itemNumber.xlsx');
-      await excelHelper.createExcelFileWithItemNumber(newFile.path, itemNumber);
-      _loadFiles();
+    final result = await _showItemNumberDialog(context);
+
+    if (result != null && result.isNotEmpty) {
+      final String? itemNumber = result['itemNumber'];
+      final comment = result['comment'];
+      if(itemNumber != null && itemNumber.isNotEmpty && comment != null && comment.isNotEmpty) {
+        final newFile = File('$dirPath/${comment}_$itemNumber.xlsx');
+        await excelHelper.createExcelFileWithItemNumber(
+            newFile.path, itemNumber, comment);
+        _loadFiles();
+      }
     }
   }
 
@@ -260,27 +320,57 @@ class _FileListScreenState extends State<FileListScreen> {
     ).then((_) => _loadFiles());
   }
 
-  Future<String?> _showItemNumberDialog(BuildContext context) async {
+  Future<Map<String, String>?> _showItemNumberDialog(BuildContext context) async {
     final TextEditingController controller = TextEditingController();
-    return showDialog<String>(
+    final TextEditingController commentController = TextEditingController();
+    return showDialog<Map<String, String>?>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        backgroundColor: Colors.white,
         title: const Text(
           'Введите Номер Накладной',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: 'Номер Накладной',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 50,
+              child: TextField(
+                controller: controller,
+                maxLines: 1,
+                decoration: InputDecoration(
+                  hintText: 'Номер Накладной',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                ),
+                keyboardType: TextInputType.text,
+              ),
             ),
-            filled: true,
-            fillColor: Colors.grey[200],
-          ),
-          keyboardType: TextInputType.text,
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 50,
+              child: TextField(
+                controller: commentController,
+                maxLines: 1,
+                decoration: InputDecoration(
+                  hintText: 'Комментарий',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                ),
+                keyboardType: TextInputType.text,
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -288,7 +378,10 @@ class _FileListScreenState extends State<FileListScreen> {
             child: const Text('Отмена', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, controller.text),
+            onPressed: () => Navigator.pop(context, {
+              'itemNumber': controller.text,
+              'comment': commentController.text,
+            }),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blueAccent,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -374,14 +467,14 @@ class _FileListScreenState extends State<FileListScreen> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                onTap: () => _openFile(file),
+                onTap: () => _openScanner(file),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.qr_code_2_outlined, color: Colors.blueAccent),
-                      onPressed: () => _openScanner(file),
-                      tooltip: 'Открыть сканер',
+                      icon: const Icon(Icons.open_in_new, color: Colors.blueAccent),
+                      onPressed: () => _openFile(file) ,
+                      tooltip: 'Открыть файд',
                     ),
                     IconButton(
                       icon: const Icon(Icons.share, color: Colors.blueAccent),
@@ -407,6 +500,7 @@ class _FileListScreenState extends State<FileListScreen> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             FloatingActionButton(
+              heroTag: "fab_settings",
               onPressed: _openSettings,
               tooltip: 'Настройки',
               foregroundColor: Colors.white,
@@ -417,6 +511,7 @@ class _FileListScreenState extends State<FileListScreen> {
             ),
             Expanded(child: Container()),
             FloatingActionButton(
+              heroTag: 'fab_file',
               onPressed: _addFile,
               child: const Icon(Icons.add, size: 28),
               tooltip: 'Добавить файл',

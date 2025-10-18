@@ -2,10 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:another_flushbar/flushbar.dart';
+import 'package:provider/provider.dart';
 import 'package:scanner_with_excel/pages/setting_page.dart';
 import 'package:scanner_with_excel/services/excel_helper.dart';
 import 'package:scanner_with_excel/pages/camera_scanner_page.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:scanner_with_excel/services/checkbox_state.dart';
 
 class CameraScannerPage extends StatefulWidget {
   final String filePath;
@@ -19,7 +21,7 @@ class CameraScannerPage extends StatefulWidget {
 class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProviderStateMixin {
   static const MethodChannel _channel = MethodChannel("com.ssline.scanner_with_excel/bluetooth");
   late ExcelHelper excelHelper;
-  List<String> dataMarks = [];
+  List<dynamic> dataMarks = [];
   bool isConnected = false;
   int? highlightedIndex;
   Timer? _highlightTimer;
@@ -31,6 +33,19 @@ class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProvi
     excelHelper = ExcelHelper();
     excelHelper.setFilePath(widget.filePath);
     _channel.setMethodCallHandler(_handleMethodCall);
+    _initCodes();
+  }
+
+  Future<void> _initCodes() async {
+    try {
+      List<String> codes = await excelHelper.getData(); // Используем существующий excelHelper
+      setState(() {
+        dataMarks = codes;
+        print('State updated with codes: $dataMarks');
+      });
+    } catch (e) {
+      print('Error in _initCodes: $e');
+    }
   }
 
   Future<dynamic> _handleMethodCall(MethodCall call) async {
@@ -39,6 +54,7 @@ class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProvi
       String cleanedData = removeUnreadableCharacters(scannedData);
       _handleDuplicateHighlight(cleanedData);
       await _handleScannedData(cleanedData);
+
     }
   }
 
@@ -249,26 +265,33 @@ class _CameraScannerPage extends State<CameraScannerPage> with SingleTickerProvi
       floatingActionButton: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          FloatingActionButton.extended(
-            onPressed: _openCamera,
-            label: const Text(
-              'Камера',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+          Consumer<CheckboxState>(
+          builder: (context, checkboxState, child) {
+            return checkboxState.isChecked
+            ? FloatingActionButton.extended(
+              heroTag: 'fab_openCamera',
+              onPressed: _openCamera,
+              label: const Text(
+                'Камера',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
-            ),
-            icon: const Icon(Icons.camera_alt, color: Colors.white),
-            backgroundColor: Colors.blue[600],
-            elevation: 8,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            tooltip: 'Открыть камеру',
-          ),
+              icon: const Icon(Icons.camera_alt, color: Colors.white),
+              backgroundColor: Colors.blue[600],
+              elevation: 8,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              tooltip: 'Открыть камеру',
+            )
+            : const SizedBox.shrink();  
+          }),
           const SizedBox(width: 16),
           FloatingActionButton.extended(
+            heroTag: "fab_done",
             onPressed: () => Navigator.pop(context),
             label: const Text(
               'Готово',

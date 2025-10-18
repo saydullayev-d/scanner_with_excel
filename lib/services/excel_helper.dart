@@ -42,18 +42,16 @@ class ExcelHelper {
   }
 
   /// Создает Excel файл с номером номенклатуры
-  Future<void> createExcelFileWithItemNumber(String customFilePath, String itemNumber) async {
+  Future<void> createExcelFileWithItemNumber(String customFilePath, String itemNumber, String comment) async {
     final file = File(customFilePath);
-    final now = DateTime.now();
-    final formatter = DateFormat('dd-MM-yyyy');
-    final currentDate = formatter.format(now);
+
 
     if (!await file.exists()) {
       try {
         var excel = Excel.createExcel();
         var firstSheet = excel.tables.keys.first;
         var sheet = excel[firstSheet];
-        sheet.appendRow([itemNumber]);
+        sheet.appendRow([itemNumber, comment]);
         sheet.appendRow([]); // Empty row for separation
         await file.writeAsBytes(excel.save()!, flush: true);
       } catch (e) {
@@ -81,7 +79,40 @@ class ExcelHelper {
     return true;
   }
 
+  Future<List<String>> getData() async {
+    try {
+      await createExcelFile(); // Убедитесь, что файл существует
+      if (filePath == null) {
+        print('Error: filePath is null');
+        return [];
+      }
+      final file = File(filePath!);
+      var bytes = file.readAsBytesSync();
+      var excel = Excel.decodeBytes(bytes);
+      List<String> codes = [];
 
+      var firstSheetName = excel.tables.keys.first;
+      Sheet? sheet = excel.tables[firstSheetName];
+
+      print('Sheet name: $firstSheetName');
+      print('Rows in sheet: ${sheet?.rows.length ?? 0}');
+      if (sheet != null && sheet.rows.isNotEmpty) {
+        print('Rows: ${sheet.rows.map((row) => row.map((cell) => cell?.value).toList()).toList()}');
+        for (var row in sheet.rows.skip(1)) {
+          var code = row.first?.value?.toString();
+          if (code != null && code.isNotEmpty) {
+            codes.add(code);
+          }
+        }
+      }
+
+      print('Extracted codes: $codes');
+      return codes;
+    } catch (e) {
+      print('Error reading Excel file: $e');
+      return [];
+    }
+  }
 
   /// Добавляет новые данные в первый лист Excel
   Future<void> addData(String data) async {

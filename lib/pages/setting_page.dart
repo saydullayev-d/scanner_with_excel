@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:scanner_with_excel/services/bluethooth_service.dart';
+import 'package:provider/provider.dart';
+import 'package:scanner_with_excel/services/checkbox_state.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override
@@ -16,6 +18,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool isConnected = false;
   List<dynamic> devices = [];
   BluethoothService bluethoothService = BluethoothService();
+  bool isChecked = false;
 
   @override
   void initState() {
@@ -201,6 +204,24 @@ Future<void> _initializeBluetooth() async {
                   });
                 }
                     : null,
+              ),
+              const SizedBox(height: 20),
+              Consumer<CheckboxState>(
+                builder: (context, checkboxState, child) {
+                  return CheckboxListTile(
+                    title: const Text("Использовать Камеру"),
+                    subtitle: const Text('Использовать камеру вместо сканнера'),
+                    checkColor: Colors.white,
+                    fillColor: WidgetStateProperty.all(Colors.grey),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    value: checkboxState.isChecked,
+                    onChanged: (bool? value) {
+                      checkboxState.setChecked(value ?? false);
+                    },
+                  );
+                },
               ),
             ],
           ),
